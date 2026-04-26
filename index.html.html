@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Dashboard</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <style>
+    :root, [data-theme="light"] {
+      --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+      --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem;
+      --color-bg: #f7f6f2; --color-surface: #f9f8f5; --color-surface-2: #fbfbf9; --color-surface-offset: #f3f0ec; --color-border: #d4d1ca; --color-divider: #dcd9d5;
+      --color-text: #28251d; --color-text-muted: #6f6d66; --color-text-faint: #a3a097; --color-text-inverse: #f9f8f4;
+      --color-primary: #01696f; --color-primary-hover: #0c4e54; --color-primary-highlight: #cedcd8;
+      --color-blue: #006494; --color-success: #437a22; --color-warning: #964219;
+      --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem;
+      --shadow-sm: 0 1px 2px rgba(40,37,29,0.06); --shadow-md: 0 8px 20px rgba(40,37,29,0.08);
+      --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    [data-theme="dark"] {
+      --color-bg: #171614; --color-surface: #1c1b19; --color-surface-2: #201f1d; --color-surface-offset: #22211f; --color-border: #393836; --color-divider: #262523;
+      --color-text: #cdccca; --color-text-muted: #9b9994; --color-text-faint: #706d67; --color-text-inverse: #1c1b19;
+      --color-primary: #4f98a3; --color-primary-hover: #227f8b; --color-primary-highlight: #313b3b;
+      --color-blue: #5591c7; --color-success: #6daa45; --color-warning: #bb653b;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.2); --shadow-md: 0 12px 30px rgba(0,0,0,0.35);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      min-height: 100dvh; font-family: 'Satoshi', system-ui, sans-serif; font-size: var(--text-base); line-height: 1.5;
+      background: var(--color-bg); color: var(--color-text); -webkit-font-smoothing: antialiased;
+    }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    .app { display: grid; grid-template-columns: 300px 1fr; height: 100dvh; overflow: hidden; }
+    .sidebar {
+      background: var(--color-surface); border-right: 1px solid rgba(40,37,29,0.12); padding: var(--space-6);
+      overflow-y: auto;
+    }
+    .main { overflow-y: auto; padding: var(--space-6); }
+    .brand { display:flex; align-items:center; justify-content:space-between; gap: var(--space-3); margin-bottom: var(--space-8); }
+    .brand-mark { display:flex; align-items:center; gap: var(--space-3); }
+    .logo { width: 40px; height: 40px; color: var(--color-primary); }
+    .brand h1 { font-size: var(--text-lg); margin: 0; line-height: 1.1; }
+    .brand p { margin: 0; font-size: var(--text-xs); color: var(--color-text-muted); }
+    .theme-toggle {
+      width: 44px; height: 44px; border-radius: var(--radius-full, 999px); border: 1px solid rgba(40,37,29,0.12);
+      background: var(--color-surface-2); display:grid; place-items:center;
+    }
+    .panel {
+      background: var(--color-surface-2); border: 1px solid rgba(40,37,29,0.12); border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-sm); padding: var(--space-5); margin-bottom: var(--space-5);
+    }
+    .panel h2 { font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); margin: 0 0 var(--space-4); }
+    .form-grid { display: grid; gap: var(--space-4); }
+    label { display:block; font-size: var(--text-sm); font-weight: 500; margin-bottom: var(--space-2); }
+    input, select, textarea {
+      width: 100%; border: 1px solid rgba(40,37,29,0.14); background: var(--color-bg); border-radius: var(--radius-md);
+      padding: 0.8rem 0.9rem;
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    .row-2 { display:grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .targets { display:grid; gap: var(--space-3); }
+    .target-item { display:flex; align-items:center; justify-content:space-between; font-size: var(--text-sm); }
+    .target-badge { padding: 0.3rem 0.55rem; border-radius: 999px; font-size: var(--text-xs); background: var(--color-primary-highlight); color: var(--color-primary); }
+    .button-row { display:flex; gap: var(--space-3); flex-wrap: wrap; }
+    .btn {
+      min-height: 44px; border-radius: var(--radius-md); padding: 0.8rem 1rem; border: 1px solid transparent;
+      transition: all var(--transition-interactive);
+    }
+    .btn-primary { background: var(--color-primary); color: var(--color-text-inverse); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-secondary { background: var(--color-surface-offset); border-color: rgba(40,37,29,0.12); }
+    .header { display:flex; align-items:flex-start; justify-content:space-between; gap: var(--space-4); margin-bottom: var(--space-6); }
+    .header h2 { font-size: var(--text-xl); margin: 0 0 var(--space-2); }
+    .header p { margin: 0; color: var(--color-text-muted); max-width: 62ch; }
+    .kpis { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-5); }
+    .card {
+      background: var(--color-surface); border: 1px solid rgba(40,37,29,0.12); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); padding: var(--space-5);
+    }
+    .eyebrow { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); margin-bottom: var(--space-3); }
+    .metric { font-size: var(--text-xl); font-weight: 700; font-variant-numeric: tabular-nums lining-nums; }
+    .submetric { color: var(--color-text-muted); font-size: var(--text-sm); margin-top: var(--space-2); }
+    .grid-2 { display:grid; grid-template-columns: 1.4fr 1fr; gap: var(--space-4); margin-bottom: var(--space-4); }
+    .table-wrap { overflow:auto; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { text-align:left; padding: 0.85rem 0.7rem; border-bottom: 1px solid var(--color-divider); font-size: var(--text-sm); }
+    th { color: var(--color-text-muted); font-weight: 600; }
+    td.num { font-variant-numeric: tabular-nums lining-nums; }
+    .actions { display:flex; gap: var(--space-2); }
+    .mini-btn { min-height: 36px; padding: 0.45rem 0.7rem; border-radius: var(--radius-md); background: var(--color-surface-offset); border:1px solid rgba(40,37,29,0.12); }
+    .empty { color: var(--color-text-muted); padding: var(--space-8) 0; text-align:center; }
+    .section-title { display:flex; align-items:center; justify-content:space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+    .section-title h3 { margin:0; font-size: var(--text-lg); }
+    .pill { padding: 0.3rem 0.55rem; border-radius:999px; background: var(--color-surface-offset); font-size: var(--text-xs); color: var(--color-text-muted); }
+    canvas { width: 100% !important; height: 280px !important; }
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; height: auto; }
+      .sidebar, .main { overflow: visible; }
+      .kpis, .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 720px) {
+      .main, .sidebar { padding: var(--space-4); }
+      .kpis, .grid-2, .row-2 { grid-template-columns: 1fr; }
+      .header { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg class="logo" viewBox="0 0 48 48" aria-label="Activity Dashboard logo" fill="none">
+            <rect x="4" y="8" width="14" height="32" rx="4" fill="currentColor" opacity="0.28"></rect>
+            <rect x="18" y="14" width="12" height="26" rx="4" fill="currentColor" opacity="0.52"></rect>
+            <rect x="30" y="4" width="14" height="36" rx="4" fill="currentColor"></rect>
+          </svg>
+          <div>
+            <h1>Activity Dashboard</h1>
+            <p>Daily log with weekly and monthly totals</p>
+          </div>
+        </div>
+        <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
+          <span aria-hidden="true">◐</span>
+        </button>
+      </div>
+
+            <section class="panel">
+        <h2>Pomodoro Timer</h2>
+        <div style="display:grid; gap:var(--space-3);">
+          <div style="padding:var(--space-3); border-radius:var(--radius-md); background:var(--color-surface-2); display:grid; grid-template-columns:auto 4rem auto auto auto auto; gap:var(--space-2); align-items:center; font-size:var(--text-sm);">
+            <strong>Focus</strong>
+            <input id="focusMinutes" type="number" min="5" max="180" step="5" value="40" style="width:100%; padding:0.4rem; border-radius:var(--radius-sm); border:1px solid rgba(40,37,29,0.14); background:var(--color-bg);" />
+            <span id="focusDisplay" style="font-variant-numeric:tabular-nums; font-weight:600; min-width:3.5rem;">40:00</span>
+            <button class="mini-btn" id="focusStart">Start</button>
+            <button class="mini-btn" id="focusStop">Stop</button>
+            <label style="display:flex; align-items:center; gap:0.25rem; font-size:var(--text-xs); white-space:nowrap;">
+              <input type="checkbox" id="focusSound" checked /> Alarm
+            </label>
+          </div>
+          <div style="padding:var(--space-3); border-radius:var(--radius-md); background:var(--color-surface-2); display:grid; grid-template-columns:auto 4rem auto auto auto auto; gap:var(--space-2); align-items:center; font-size:var(--text-sm);">
+            <strong>Break</strong>
+            <input id="breakMinutes" type="number" min="1" max="60" step="1" value="10" style="width:100%; padding:0.4rem; border-radius:var(--radius-sm); border:1px solid rgba(40,37,29,0.14); background:var(--color-bg);" />
+            <span id="breakDisplay" style="font-variant-numeric:tabular-nums; font-weight:600; min-width:3.5rem;">10:00</span>
+            <button class="mini-btn" id="breakStart">Start</button>
+            <button class="mini-btn" id="breakStop">Stop</button>
+            <label style="display:flex; align-items:center; gap:0.25rem; font-size:var(--text-xs); white-space:nowrap;">
+              <input type="checkbox" id="breakSound" checked /> Alarm
+            </label>
+          </div>
+        </div>
+      </section>
+
+<section class="panel">
+        <h2>Add entry</h2>
+        <form id="entryForm" class="form-grid">
+          <div>
+            <label for="entryDate">Date</label>
+            <input id="entryDate" name="date" type="date" required />
+          </div>
+          <div class="row-2">
+            <div>
+              <label for="entryCategory">Category</label>
+              <select id="entryCategory" name="category" required></select>
+            </div>
+            <div>
+              <label for="entrySessions">Sessions</label>
+              <input id="entrySessions" name="sessions" type="number" min="1" step="1" value="1" required />
+            </div>
+          </div>
+          <div>
+            <label for="entryTask">Task</label>
+            <input id="entryTask" name="task" type="text" placeholder="e.g. article draft, lecture prep, committee meeting" required />
+          </div>
+          <div>
+            <label for="entryNotes">Notes</label>
+            <textarea id="entryNotes" name="notes" placeholder="Optional context or outcomes"></textarea>
+          </div>
+          <div class="button-row">
+            <button class="btn btn-primary" type="submit">Save entry</button>
+            <button class="btn btn-secondary" type="button" id="loadSample">Load sample week</button>
+            <button class="btn btn-secondary" type="button" id="clearAll">Clear all</button>
+          </div>
+        </form>
+      </section>
+
+      
+      <section class="panel">
+        <h2>✅ Today's Tasks</h2>
+        <div style="display:grid; gap:var(--space-3);">
+          <div id="todoistTasks" style="display:grid; gap:var(--space-2); max-height:300px; overflow-y:auto; font-size:var(--text-sm);">
+            <div style="color:var(--color-text-muted);">Enter Todoist API token in settings below</div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding-top:var(--space-2); border-top:1px solid var(--color-divider); font-size:var(--text-sm);">
+            <span id="todoistSummary" style="color:var(--color-text-muted);">--</span>
+            <button class="mini-btn" id="refreshTodoist">Refresh</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>🎯 RescueTime</h2>
+        <div style="display:grid; gap:var(--space-3);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-2);">
+              <strong style="font-size:var(--text-sm);">Productivity Pulse</strong>
+              <span id="rtPulse" style="font-size:var(--text-lg); font-weight:700;">--</span>
+            </div>
+            <div style="height:6px; background:var(--color-surface-offset); border-radius:999px; overflow:hidden;">
+              <div id="rtPulseBar" style="width:0%; height:100%; background:linear-gradient(90deg, #f97316, #22c55e); transition:width 0.3s;"></div>
+            </div>
+          </div>
+          <div id="rtGoals" style="display:grid; gap:var(--space-2); font-size:var(--text-sm);">
+            <div style="color:var(--color-text-muted);">Enter RescueTime API key below</div>
+          </div>
+          <button class="mini-btn" id="refreshRescueTime">Refresh</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>⚙️ API Settings</h2>
+        <div style="display:grid; gap:var(--space-3); font-size:var(--text-sm);">
+          <div>
+            <label for="rtApiKey" style="display:block; margin-bottom:var(--space-1); font-weight:500;">RescueTime API Key</label>
+            <input id="rtApiKey" type="password" placeholder="Paste key from rescuetime.com/anapi/manage" style="width:100%; padding:0.5rem; border:1px solid rgba(40,37,29,0.14); border-radius:var(--radius-sm); background:var(--color-bg); font-size:var(--text-sm);" />
+          </div>
+          <div>
+            <label for="tdApiKey" style="display:block; margin-bottom:var(--space-1); font-weight:500;">Todoist API Token</label>
+            <input id="tdApiKey" type="password" placeholder="Paste from todoist.com/prefs/integrations" style="width:100%; padding:0.5rem; border:1px solid rgba(40,37,29,0.14); border-radius:var(--radius-sm); background:var(--color-bg); font-size:var(--text-sm);" />
+          </div>
+          <button class="btn btn-primary" id="btnSaveKeys" style="width:100%; padding:0.6rem;">💾 Save API Keys</button>
+          <div id="apiMessage" style="font-size:var(--text-xs); text-align:center; min-height:1rem;"></div>
+        </div>
+      </section>
+
+<section class="panel">
+        <h2>Targets</h2>
+        <div class="targets">
+          <div class="target-item"><span>Research</span><span class="target-badge">50%</span></div>
+          <div class="target-item"><span>Teaching &amp; Mentoring</span><span class="target-badge">20%</span></div>
+          <div class="target-item"><span>Service &amp; Admin</span><span class="target-badge">30%</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>How it works</h2>
+        <div style="display:grid; gap:0.75rem; color:var(--color-text-muted); font-size:var(--text-sm);">
+          <div>Log each activity as a separate entry.</div>
+          <div>Weekly totals use the current Monday–Sunday window.</div>
+          <div>Monthly totals use the current calendar month.</div>
+          <div>Data stays in this page session only.</div>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Day rating</h2>
+        <div style="display:grid; gap:0.75rem; font-size:var(--text-sm);">
+          <div>Rate each day from -2 (very poor) to +2 (great) in Jim Collins's style.</div>
+          <div>
+            <label for="dayRating">Today's rating</label>
+            <input id="dayRating" type="range" min="-2" max="2" step="1" value="0" style="width:100%;" />
+            <div style="display:flex; justify-content:space-between; font-size:var(--text-xs); color:var(--color-text-muted); margin-top:0.25rem;">
+              <span>-2</span><span>-1</span><span>0</span><span>+1</span><span>+2</span>
+            </div>
+            <div id="dayRatingLabel" style="margin-top:0.5rem; color:var(--color-text-muted);">Current: 0 (neutral)</div>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <div>
+          <h2>Work allocation overview</h2>
+          <p>Track research, teaching, and service/admin time against your target mix. Use the form on the left to add entries, then review totals and recent activity here.</p>
+        </div>
+        <div class="pill" id="dateRangePill">Current week and month</div>
+      </header>
+
+      <section class="kpis">
+        <article class="card">
+          <div class="eyebrow">Today's focus time</div>
+          <div class="metric" id="timerTotal">0 min</div>
+          <div class="submetric">Total from completed timers</div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">This week</div>
+          <div class="metric" id="weeklyTotal">0.0 h</div>
+          <div class="submetric" id="weeklyBreakdown">Research 0.0 · Teaching 0.0 · Admin 0.0</div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">This month</div>
+          <div class="metric" id="monthlyTotal">0.0 h</div>
+          <div class="submetric" id="monthlyBreakdown">Research 0.0 · Teaching 0.0 · Admin 0.0</div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">Weekly research share</div>
+          <div class="metric" id="weeklyResearchShare">0%</div>
+          <div class="submetric">Target: 50%</div>
+        </article>
+      </section>
+
+      <section class="kpis">
+        <article class="card">
+          <div class="eyebrow">Year to date</div>
+          <div class="metric" id="yearlyCreative">0.0 h</div>
+          <div class="submetric">Progress toward 1,000 creative hours</div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">Day ratings</div>
+          <div class="metric" id="avgRating">0.0</div>
+          <div class="submetric" id="ratingSummary">Average rating this month</div>
+        </article>
+      </section>
+
+      <section class="grid-2">
+        <article class="card">
+          <div class="section-title">
+            <h3>Weekly totals by category</h3>
+            <span class="pill">Current week</span>
+          </div>
+          <canvas id="weeklyChart"></canvas>
+        </article>
+        <article class="card">
+          <div class="section-title">
+            <h3>Monthly totals by category</h3>
+            <span class="pill">Current month</span>
+          </div>
+          <canvas id="monthlyChart"></canvas>
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="section-title">
+          <h3>Recent entries</h3>
+          <span class="pill" id="recentCount">0 rows</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Task</th>
+                <th>Sessions</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="entriesBody"></tbody>
+          </table>
+          <div id="emptyState" class="empty">No entries yet. Add your first activity from the form.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // === API INTEGRATION ===
+
+    function saveKeys() {
+      const rtKey = document.getElementById('rtApiKey').value.trim();
+      const tdKey = document.getElementById('tdApiKey').value.trim();
+      const msg = document.getElementById('apiMessage');
+
+      if (!rtKey && !tdKey) {
+        msg.textContent = '⚠️ Enter at least one API key';
+        msg.style.color = '#f97316';
+        return;
+      }
+
+      if (rtKey) localStorage.setItem('rtKey', rtKey);
+      if (tdKey) localStorage.setItem('tdKey', tdKey);
+
+      msg.textContent = '✓ Saved! Refreshing data...';
+      msg.style.color = '#22c55e';
+
+      setTimeout(() => {
+        if (rtKey) loadRescueTime();
+        if (tdKey) loadTodoist();
+        msg.textContent = '';
+      }, 1000);
+    }
+
+    async function loadRescueTime() {
+      const key = localStorage.getItem('rtKey');
+      if (!key) return;
+
+      const url = `https://www.rescuetime.com/anapi/daily_summary_feed?key=${key}`;
+
+      try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (data && data.length > 0) {
+          const today = data[0];
+          document.getElementById('rtPulse').textContent = today.productivity_pulse || '--';
+          document.getElementById('rtPulseBar').style.width = (today.productivity_pulse || 0) + '%';
+
+          document.getElementById('rtGoals').innerHTML = `
+            <div style="display:flex; justify-content:space-between;"><span>Total tracked:</span><strong>${today.total_duration_formatted || '0h'}</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span>Very productive:</span><strong style="color:#22c55e;">${today.very_productive_duration_formatted || '0h'}</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span>Distracting:</span><strong style="color:#f97316;">${today.very_distracting_duration_formatted || '0h'}</strong></div>
+          `;
+        }
+      } catch (e) {
+        document.getElementById('rtGoals').innerHTML = '<div style="color:#f97316; font-size:var(--text-xs);">CORS error. See console for solution.</div>';
+        console.error('RescueTime CORS blocked. Solutions:', e);
+        console.log('1. Run via localhost (python -m http.server)');
+        console.log('2. Install CORS Unblock browser extension');
+      }
+    }
+
+    async function loadTodoist() {
+      const key = localStorage.getItem('tdKey');
+      if (!key) return;
+
+      try {
+        const resp = await fetch('https://api.todoist.com/rest/v2/tasks', {
+          headers: { 'Authorization': `Bearer ${key}` }
+        });
+        const tasks = await resp.json();
+
+        if (!tasks || tasks.length === 0) {
+          document.getElementById('todoistTasks').innerHTML = '<div style="color:var(--color-text-muted);">No tasks today</div>';
+          return;
+        }
+
+        // Group by project_id
+        const byProject = {};
+        tasks.forEach(t => {
+          const pid = t.project_id || 'inbox';
+          if (!byProject[pid]) byProject[pid] = [];
+          byProject[pid].push(t);
+        });
+
+        let html = '';
+        Object.keys(byProject).forEach(pid => {
+          const projectTasks = byProject[pid];
+          html += `<div><strong style="display:block; margin-bottom:0.5rem;">Project ${pid} (${projectTasks.length})</strong><div style="display:grid; gap:0.4rem;">`;
+
+          projectTasks.slice(0, 8).forEach(t => {
+            html += `
+              <label style="display:flex; gap:0.4rem; align-items:start; cursor:pointer;">
+                <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTask('${t.id}', this.checked)" />
+                <span style="flex:1; ${t.is_completed ? 'text-decoration:line-through; opacity:0.5;' : ''}">${t.content}</span>
+              </label>
+            `;
+          });
+          html += '</div></div>';
+        });
+
+        document.getElementById('todoistTasks').innerHTML = html;
+
+        const done = tasks.filter(t => t.is_completed).length;
+        document.getElementById('todoistSummary').textContent = `${done} of ${tasks.length} done`;
+
+      } catch (e) {
+        document.getElementById('todoistTasks').innerHTML = '<div style="color:#f97316;">Error loading tasks</div>';
+        console.error('Todoist error:', e);
+      }
+    }
+
+    async function toggleTask(taskId, checked) {
+      const key = localStorage.getItem('tdKey');
+      if (!key) return;
+
+      try {
+        const endpoint = checked ? 'close' : 'reopen';
+        await fetch(`https://api.todoist.com/rest/v2/tasks/${taskId}/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${key}` }
+        });
+        setTimeout(loadTodoist, 300);
+      } catch (e) {
+        console.error('Toggle error:', e);
+      }
+    }
+
+    // Auto-refresh every 15 minutes
+    setInterval(() => {
+      if (localStorage.getItem('rtKey')) loadRescueTime();
+      if (localStorage.getItem('tdKey')) loadTodoist();
+    }, 15 * 60 * 1000);
+
+
+    const state = { entries: [], ratings: [], timerMinutes: 0 };
+    const baseCategories = ['Research', 'Teaching & Mentoring', 'Service & Admin'];
+            const categories = () => baseCategories;
+    const categoryColors = {
+      'Research': '#01696f',
+      'Teaching & Mentoring': '#006494',
+      'Service & Admin': '#964219',
+      'Project': '#437a22'
+    };
+
+    const form = document.getElementById('entryForm');
+    const entriesBody = document.getElementById('entriesBody');
+    const emptyState = document.getElementById('emptyState');
+    const dateRangePill = document.getElementById('dateRangePill');
+    const entryDate = document.getElementById('entryDate');
+
+    const categorySelect = document.getElementById('entryCategory');
+            const sessionsInput = document.getElementById('entrySessions');
+    const dayRatingInput = document.getElementById('dayRating');
+    const dayRatingLabel = document.getElementById('dayRatingLabel');
+
+    entryDate.value = new Date().toISOString().slice(0, 10);
+
+    const formatTime = (n) => `${n.toFixed(1)} h`;
+    const formatDate = (str) => new Date(str + 'T00:00:00').toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+
+    function startOfWeek(date) {
+      const d = new Date(date);
+      const day = (d.getDay() + 6) % 7;
+      d.setDate(d.getDate() - day);
+      d.setTime(0,0,0,0);
+      return d;
+    }
+
+    function endOfWeek(date) {
+      const d = startOfWeek(date);
+      d.setDate(d.getDate() + 6);
+      d.setTime(23,59,59,999);
+      return d;
+    }
+
+    function startOfMonth(date) {
+      return new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+
+    function endOfMonth(date) {
+      return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+    }
+
+    function withinRange(entryDateString, start, end) {
+      const d = new Date(entryDateString + 'T12:00:00');
+      return d >= start && d <= end;
+    }
+
+    function sumByCategory(entries) {
+      return categories().reduce((acc, category) => {
+        acc[category] = entries.filter(e => e.category === category).reduce((sum, e) => sum + e.hours, 0);
+        return acc;
+      }, {});
+    }
+
+    function totalTime(obj) {
+      return Object.values(obj).reduce((a,b) => a + b, 0);
+    }
+
+    function breakdownText(obj) {
+      return `Research ${(obj['Research'] || 0).toFixed(1)} · Teaching ${(obj['Teaching & Mentoring'] || 0).toFixed(1)} · Admin ${(obj['Service & Admin'] || 0).toFixed(1)}`;
+    }
+
+    let weeklyChart, monthlyChart;
+
+    function makeChart(ctx, label, values) {
+      return new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: categories(),
+          datasets: [{
+            label,
+            data: values,
+            backgroundColor: categories().map(c => categoryColors[c] || '#01696f'),
+            borderRadius: 8,
+            maxBarThickness: 56
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    function updateCharts(weekly, monthly) {
+      const weeklyValues = categories().map(c => weekly[c] || 0);
+      const monthlyValues = categories().map(c => monthly[c] || 0);
+      if (!weeklyChart) weeklyChart = makeChart(document.getElementById('weeklyChart'), 'Weekly hours', weeklyValues);
+      else { weeklyChart.data.labels = categories(); weeklyChart.data.datasets[0].data = weeklyValues; weeklyChart.update(); }
+      if (!monthlyChart) monthlyChart = makeChart(document.getElementById('monthlyChart'), 'Monthly hours', monthlyValues);
+      else { monthlyChart.data.labels = categories(); monthlyChart.data.datasets[0].data = monthlyValues; monthlyChart.update(); }
+    }
+
+    function renderTable() {
+      const rows = [...state.entries].sort((a,b) => b.date.localeCompare(a.date) || b.id - a.id);
+      entriesBody.innerHTML = rows.map(entry => `
+        <tr>
+          <td>${formatDate(entry.date)}</td>
+          <td>${entry.category}</td>
+          <td>${entry.task}</td>
+          <td class="num">${entry.sessions || 1}</td>
+          <td>${entry.notes || '—'}</td>
+          <td>
+            <div class="actions">
+              <button class="mini-btn" data-delete-id="${entry.id}">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+      emptyState.style.display = rows.length ? 'none' : 'block';
+      document.getElementById('recentCount').textContent = `${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`;
+    }
+
+    
+
+    function buildCategoryOptions() {
+      categorySelect.innerHTML = '';
+      categories().forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        categorySelect.appendChild(opt);
+      });
+    }
+
+    
+
+    
+
+    
+
+    dayRatingInput.addEventListener('input', () => {
+      const v = Number(dayRatingInput.value);
+      const labels = { '-2': 'very poor', '-1': 'poor', '0': 'neutral', '1': 'good', '2': 'great' };
+      dayRatingLabel.textContent = `Current: ${v} (${labels[String(v)] || ''})`;
+      const todayStr = new Date().toISOString().slice(0,10);
+      const existing = state.ratings.find(r => r.date === todayStr);
+      if (existing) existing.value = v; else state.ratings.push({ date: todayStr, value: v });
+      renderDashboard();
+
+    // Initialize API features
+    document.getElementById('btnSaveKeys').addEventListener('click', saveKeys);
+    document.getElementById('refreshRescueTime').addEventListener('click', loadRescueTime);
+    document.getElementById('refreshTodoist').addEventListener('click', loadTodoist);
+
+    // Load saved keys and auto-fetch
+    const savedRt = localStorage.getItem('rtKey');
+    const savedTd = localStorage.getItem('tdKey');
+    if (savedRt) {
+      document.getElementById('rtApiKey').value = savedRt;
+      loadRescueTime();
+    }
+    if (savedTd) {
+      document.getElementById('tdApiKey').value = savedTd;
+      loadTodoist();
+    }
+
+    });
+    buildCategoryOptions();
+
+    function renderDashboard() {
+      const now = new Date();
+      const weekStart = startOfWeek(now);
+      const weekEnd = endOfWeek(now);
+      const monthStart = startOfMonth(now);
+      const monthEnd = endOfMonth(now);
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+      const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+
+      dateRangePill.textContent = `${weekStart.toLocaleDateString(undefined, { month:'short', day:'numeric' })}–${weekEnd.toLocaleDateString(undefined, { month:'short', day:'numeric' })} · ${now.toLocaleDateString(undefined, { month:'long', year:'numeric' })}`;
+
+      const weeklyEntries = state.entries.filter(e => withinRange(e.date, weekStart, weekEnd));
+      const monthlyEntries = state.entries.filter(e => withinRange(e.date, monthStart, monthEnd));
+      const yearlyEntries = state.entries.filter(e => withinRange(e.date, yearStart, yearEnd));
+      const weekly = sumByCategory(weeklyEntries);
+      const monthly = sumByCategory(monthlyEntries);
+      const yearly = sumByCategory(yearlyEntries);
+      const weeklyTotal = totalTime(weekly);
+      const monthlyTotal = totalTime(monthly);
+      const yearlyTotal = totalTime(yearly);
+      const weeklyResearchShare = weeklyTotal ? Math.round((weekly['Research'] / weeklyTotal) * 100) : 0;
+
+      document.getElementById('weeklyTotal').textContent = formatTime(weeklyTotal);
+      document.getElementById('monthlyTotal').textContent = formatTime(monthlyTotal);
+      document.getElementById('yearlyCreative').textContent = formatTime(yearlyTotal);
+      document.getElementById('weeklyBreakdown').textContent = breakdownText(weekly);
+      document.getElementById('monthlyBreakdown').textContent = breakdownText(monthly);
+      document.getElementById('weeklyResearchShare').textContent = `${weeklyResearchShare}%`;
+      document.getElementById('entryCount').textContent = String(state.entries.length);
+
+      const currentMonthRatings = state.ratings.filter(r => {
+        const d = new Date(r.date + 'T12:00:00');
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      });
+      if (currentMonthRatings.length) {
+        const avg = currentMonthRatings.reduce((s,r) => s + r.value, 0) / currentMonthRatings.length;
+        document.getElementById('avgRating').textContent = avg.toFixed(2);
+        document.getElementById('ratingSummary').textContent = `Average rating this month over ${currentMonthRatings.length} days`;
+      } else {
+        document.getElementById('avgRating').textContent = '0.0';
+        document.getElementById('ratingSummary').textContent = 'No day ratings logged yet';
+      }
+
+      updateCharts(weekly, monthly);
+      renderTable();
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+      const sessions = Number(data.get('sessions')) || 1;
+      state.entries.push({
+        id: Date.now() + Math.random(),
+        date: data.get('date'),
+        category: data.get('category'),
+        task: data.get('task').trim(),
+        sessions,
+        notes: data.get('notes').trim()
+      });
+      form.reset();
+      entryDate.value = new Date().toISOString().slice(0, 10);
+      sessionsInput.value = 1;
+      renderDashboard();
+
+    // Initialize API features
+    document.getElementById('btnSaveKeys').addEventListener('click', saveKeys);
+    document.getElementById('refreshRescueTime').addEventListener('click', loadRescueTime);
+    document.getElementById('refreshTodoist').addEventListener('click', loadTodoist);
+
+    // Load saved keys and auto-fetch
+    const savedRt = localStorage.getItem('rtKey');
+    const savedTd = localStorage.getItem('tdKey');
+    if (savedRt) {
+      document.getElementById('rtApiKey').value = savedRt;
+      loadRescueTime();
+    }
+    if (savedTd) {
+      document.getElementById('tdApiKey').value = savedTd;
+      loadTodoist();
+    }
+
+    });
+
+    document.getElementById('loadSample').addEventListener('click', () => {
+      const today = new Date();
+      const iso = (d) => d.toISOString().slice(0, 10);
+      const monday = startOfWeek(today);
+      const sample = [
+        [0, 'Research', 'Article writing', 'Drafted discussion section', 1],
+        [0, 'Service & Admin', 'Department meeting', 'Weekly planning', 1],
+        [1, 'Research', 'Grant concept note', 'Outlined call response', 1],
+        [1, 'Teaching & Mentoring', 'MA supervision', 'Reviewed thesis chapter', 1],
+        [2, 'Teaching & Mentoring', 'Lecture prep', 'Updated slides and readings', 1],
+        [2, 'Research', 'Literature review', 'Annotated key sources', 1],
+        [3, 'Service & Admin', 'Hiring paperwork', 'Committee and approvals', 1],
+        [3, 'Research', 'Project analysis', 'Revised coding scheme', 1],
+        [4, 'Research', 'Manuscript edits', 'Integrated peer feedback', 1],
+        [4, 'Teaching & Mentoring', 'Student office hours', 'Follow-up on assignments', 1],
+        [4, 'Service & Admin', 'Email triage', 'Cleared urgent items', 1]
+      ];
+      projects = ['Book project', 'Grant X', 'Project Y'];
+      state.entries = sample.map(([offset, category, task, notes, sessions], i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + offset);
+        return { id: Date.now() + i, date: iso(d), category, task, notes, sessions };
+      });
+      renderDashboard();
+
+    // Initialize API features
+    document.getElementById('btnSaveKeys').addEventListener('click', saveKeys);
+    document.getElementById('refreshRescueTime').addEventListener('click', loadRescueTime);
+    document.getElementById('refreshTodoist').addEventListener('click', loadTodoist);
+
+    // Load saved keys and auto-fetch
+    const savedRt = localStorage.getItem('rtKey');
+    const savedTd = localStorage.getItem('tdKey');
+    if (savedRt) {
+      document.getElementById('rtApiKey').value = savedRt;
+      loadRescueTime();
+    }
+    if (savedTd) {
+      document.getElementById('tdApiKey').value = savedTd;
+      loadTodoist();
+    }
+
+    });
+
+    document.getElementById('clearAll').addEventListener('click', () => {
+      state.entries = [];
+      state.ratings = [];
+      renderDashboard();
+
+    // Initialize API features
+    document.getElementById('btnSaveKeys').addEventListener('click', saveKeys);
+    document.getElementById('refreshRescueTime').addEventListener('click', loadRescueTime);
+    document.getElementById('refreshTodoist').addEventListener('click', loadTodoist);
+
+    // Load saved keys and auto-fetch
+    const savedRt = localStorage.getItem('rtKey');
+    const savedTd = localStorage.getItem('tdKey');
+    if (savedRt) {
+      document.getElementById('rtApiKey').value = savedRt;
+      loadRescueTime();
+    }
+    if (savedTd) {
+      document.getElementById('tdApiKey').value = savedTd;
+      loadTodoist();
+    }
+
+    });
+
+    entriesBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-delete-id]');
+      if (!btn) return;
+      const id = Number(btn.getAttribute('data-delete-id'));
+      state.entries = state.entries.filter(entry => entry.id !== id);
+      renderDashboard();
+
+    // Initialize API features
+    document.getElementById('btnSaveKeys').addEventListener('click', saveKeys);
+    document.getElementById('refreshRescueTime').addEventListener('click', loadRescueTime);
+    document.getElementById('refreshTodoist').addEventListener('click', loadTodoist);
+
+    // Load saved keys and auto-fetch
+    const savedRt = localStorage.getItem('rtKey');
+    const savedTd = localStorage.getItem('tdKey');
+    if (savedRt) {
+      document.getElementById('rtApiKey').value = savedRt;
+      loadRescueTime();
+    }
+    if (savedTd) {
+      document.getElementById('tdApiKey').value = savedTd;
+      loadTodoist();
+    }
+
+    });
+
+    document.querySelector('[data-theme-toggle]').addEventListener('click', () => {
+      const root = document.documentElement;
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      setTimeout(() => { if (weeklyChart) weeklyChart.update(); if (monthlyChart) monthlyChart.update(); }, 50);
+    });
+
+    function setupTimer(prefix) {
+      let remaining = 0;
+      let running = false;
+      let intervalId = null;
+      let startMinutes = 0;
+      const minutesInput = document.getElementById(prefix + 'Minutes');
+      const display = document.getElementById(prefix + 'Display');
+      const startBtn = document.getElementById(prefix + 'Start');
+      const stopBtn = document.getElementById(prefix + 'Stop');
+      const soundCheckbox = document.getElementById(prefix + 'Sound');
+
+      function updateDisplay() {
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        display.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+
+      function resetFromInput() {
+        const mins = Math.max(1, Number(minutesInput.value) || 1);
+        remaining = mins * 60;
+        startMinutes = mins;
+        updateDisplay();
+      }
+
+      function updateTimerTotal() {
+        document.getElementById('timerTotal').textContent = `${state.timerMinutes} min`;
+      }
+
+      minutesInput.addEventListener('change', resetFromInput);
+      resetFromInput();
+
+      startBtn.addEventListener('click', () => {
+        if (running) return;
+        if (!remaining) resetFromInput();
+        running = true;
+        intervalId = setInterval(() => {
+          remaining -= 1;
+          if (remaining <= 0) {
+            remaining = 0;
+            updateDisplay();
+            clearInterval(intervalId);
+            running = false;
+
+            // Add completed timer minutes to state
+            if (prefix === 'focus') {
+              state.timerMinutes += startMinutes;
+              updateTimerTotal();
+            }
+
+            if (soundCheckbox.checked && typeof Audio !== 'undefined') {
+              try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 880;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+                osc.stop(ctx.currentTime + 1.5);
+              } catch(e) {}
+            }
+          }
+          updateDisplay();
+        }, 1000);
+      });
+
+      stopBtn.addEventListener('click', () => {
+        running = false;
+        clearInterval(intervalId);
+      });
+    }
+
+    setupTimer('focus');
+    setupTimer('break');
+
+    renderDashboard();
+
+    // Initialize API features
+    document.getElementById('btnSaveKeys').addEventListener('click', saveKeys);
+    document.getElementById('refreshRescueTime').addEventListener('click', loadRescueTime);
+    document.getElementById('refreshTodoist').addEventListener('click', loadTodoist);
+
+    // Load saved keys and auto-fetch
+    const savedRt = localStorage.getItem('rtKey');
+    const savedTd = localStorage.getItem('tdKey');
+    if (savedRt) {
+      document.getElementById('rtApiKey').value = savedRt;
+      loadRescueTime();
+    }
+    if (savedTd) {
+      document.getElementById('tdApiKey').value = savedTd;
+      loadTodoist();
+    }
+
+  </script>
+</body>
+</html>
